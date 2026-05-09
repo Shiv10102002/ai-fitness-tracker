@@ -24,7 +24,11 @@ public class RecommendationController {
 
     @GetMapping("/activity/{activityId}")
     public ResponseEntity<Recommendation> getActivityRecommendation(@PathVariable String activityId){
-        return ResponseEntity.ok(recommendationService.getActivityRecommendation(activityId));
+        try {
+            return ResponseEntity.ok(recommendationService.getActivityRecommendation(activityId));
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 
 

@@ -1,1 +1,23 @@
 .idea
+
+# ============================================================
+# Secrets & credentials — never commit these
+# ============================================================
+
+# Environment variable files
+.env
+.env.*
+!.env.example
+
+# Secret / local-override property files
+*.secret.properties
+*.local.properties
+secrets.properties
+
+# Private keys, certificates, keystores
+*.pem
+*.key
+*.p12
+*.jks
+*.keystore
+*.truststore

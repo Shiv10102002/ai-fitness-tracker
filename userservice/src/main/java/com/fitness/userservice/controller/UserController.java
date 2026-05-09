@@ -1,6 +1,4 @@
 package com.fitness.userservice.controller;
-
-
 import com.fitness.userservice.dto.RegisterRequest;
 import com.fitness.userservice.dto.UserResponse;
 import com.fitness.userservice.service.UserService;
@@ -27,6 +25,6 @@ public class UserController {
 
     @GetMapping("/{userId}/validate")
     public ResponseEntity<Boolean> validateUser(@PathVariable String userId){
-        return ResponseEntity.ok(userService.existByUserId(userId));
+        return ResponseEntity.ok(userService.existByKeyCloakId(userId));
     }
 }

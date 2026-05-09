@@ -15,7 +15,16 @@ public class UserService {
 
     public UserResponse register(RegisterRequest req) {
         if(repository.existsByEmail(req.getEmail())) {
-           throw new RuntimeException("email already exists");
+            User existingUser = repository.findByEmail(req.getEmail());
+            UserResponse response = new UserResponse();
+            response.setId(existingUser.getId());
+            response.setPassword(existingUser.getPassword());
+            response.setEmail(existingUser.getEmail());
+            response.setFirstName(existingUser.getFirstName());
+            response.setLastName(existingUser.getLastName());
+            response.setCreatedAt(existingUser.getCreatedAt());
+            response.setUpdatedAt(existingUser.getUpdatedAt());
+            return response;
         }
 
         User user = new User();
@@ -23,6 +32,7 @@ public class UserService {
         user.setFirstName(req.getFirstName());
         user.setLastName(req.getLastName());
         user.setPassword(req.getPassword());
+        user.setKeyCloakId(req.getKeyCloakId());
 
         User saveduser = repository.save(user);
         UserResponse response = new UserResponse();
@@ -33,6 +43,7 @@ public class UserService {
         response.setLastName(saveduser.getLastName());
         response.setCreatedAt(saveduser.getCreatedAt());
         response.setUpdatedAt(saveduser.getUpdatedAt());
+        response.setKeyCloakId(saveduser.getKeyCloakId());
 
         return response;
     }
@@ -50,8 +61,8 @@ public class UserService {
         return response;
     }
 
-    public Boolean existByUserId(String userId) {
-        log.info("checking user with userId : {} exist in db or not",userId);
-        return repository.existsById(userId);
+    public Boolean existByKeyCloakId(String keyCloakId) {
+        log.info("checking user with keyCloakId : {} exist in db or not",keyCloakId);
+        return repository.existsByKeyCloakId(keyCloakId);
     }
 }

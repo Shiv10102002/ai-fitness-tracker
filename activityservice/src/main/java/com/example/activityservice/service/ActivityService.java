@@ -9,6 +9,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -36,6 +39,7 @@ public class ActivityService {
                 .build();
         Activity savedActivity = activityRepository.save(activity);
         try{
+            log.info("sending message to cafka for generate activity recommendation");
             kafkaTemplate.send(topicName, savedActivity.getUserId(), savedActivity);
         } catch (Exception e) {
             e.printStackTrace();
@@ -57,5 +61,12 @@ public class ActivityService {
         response.setCreatedAt(savedActivity.getCreatedAt());
         response.setUpdatedAt(savedActivity.getUpdatedAt());
         return response;
+    }
+
+    public List<ActivityResponse> getUserActivities(String userId) {
+        List<Activity> activityList = activityRepository.findByUserId(userId);
+        return activityList.stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
     }
 }

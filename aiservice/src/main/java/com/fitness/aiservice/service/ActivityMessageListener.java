@@ -19,9 +19,13 @@ public class ActivityMessageListener {
     @KafkaListener(topics = "${kafka.topic.name}",groupId = "activity-processor-group")
     public void processActivity(Activity activity){
         log.info("Received Activity for processing : {}",activity);
-
-       Recommendation recommendation =  activityAIService.generateRecommendation(activity);
-       recommendationRepository.save(recommendation);
-
+        try {
+            Recommendation recommendation = activityAIService.generateRecommendation(activity);
+            recommendationRepository.save(recommendation);
+        } catch (Exception e) {
+            log.error("Failed to generate AI recommendation for activity {}: {}", activity.getId(), e.getMessage());
+            Recommendation fallback = activityAIService.generateFallbackRecommendation(activity);
+            recommendationRepository.save(fallback);
+        }
     }
 }
