@@ -10,7 +10,7 @@ Six independent Maven projects (no parent POM) and one React app:
 | Dir | Service | Port | Storage |
 |---|---|---|---|
 | `eureka/` | Service discovery | 8761 | — |
-| `configServer/` | Spring Cloud Config (native, `src/main/resources/config/*.properties`) | 8888 | — |
+| `configServer/` | Spring Cloud Config (native, `src/main/resources/config-repo/*.properties`) | 8888 | — |
 | `gateway/` | Spring Cloud Gateway (WebFlux), OAuth2 resource server | 8080 | — |
 | `userservice/` | User profiles | 8081 | PostgreSQL |
 | `activityservice/` | Activity logging, Kafka producer | 8082 | MongoDB |
@@ -47,7 +47,7 @@ cd fitness-frontend && npm run lint && npm run build
    - `*IT`: `@SpringBootTest` + Testcontainers (`@ServiceConnection`), run by Failsafe.
    - Test names describe behaviour: `duplicateEvent_isSkipped_withoutCallingGemini`.
    - Stub HTTP dependencies with `WebClient.builder().exchangeFunction(...)`, not live calls.
-6. **Config & secrets.** Service config lives in `configServer/src/main/resources/config/`.
+6. **Config & secrets.** Service config lives in `configServer/src/main/resources/config-repo/`.
    Secrets are `${ENV_VAR}` placeholders only (see `.env.example`). Never commit real keys.
 7. **Observability.** Use SLF4J with parameterised messages and include domain ids
    (activityId, userId). Trace ids are added automatically (spec 003). Don't log tokens or

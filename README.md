@@ -127,7 +127,7 @@ If the AI call fails for any reason, a sensible **fallback recommendation** is s
 | Service | Port | Database | Description |
 |---|---|---|---|
 | **Eureka Server** | 8761 | — | Service registry; all services register here |
-| **Config Server** | 8888 | — | Serves `application.properties` for each service from `configServer/src/main/resources/config/` |
+| **Config Server** | 8888 | — | Serves `application.properties` for each service from `configServer/src/main/resources/config-repo/` |
 | **Gateway** | 8080 | — | Single entry point; validates JWTs, syncs users, routes requests |
 | **User Service** | 8081 | PostgreSQL | Stores user profiles linked to Keycloak IDs |
 | **Activity Service** | 8082 | MongoDB | Persists activities and publishes Kafka events |
@@ -305,7 +305,7 @@ Open `http://localhost:5173` in your browser.
 All backend configuration is managed centrally by the **Config Server**. Each service fetches its config on startup from:
 
 ```
-configServer/src/main/resources/config/<service-name>.properties
+configServer/src/main/resources/config-repo/<service-name>.properties
 ```
 
 | Config File | Service | Key Settings |
@@ -314,7 +314,7 @@ configServer/src/main/resources/config/<service-name>.properties
 | `activity-service.properties` | Activity Service | MongoDB URI, Kafka producer config |
 | `user-service.properties` | User Service | PostgreSQL URL, username, password |
 
-`config/application.properties` holds settings shared by all services (tracing).
+`config-repo/application.properties` holds settings shared by all services (tracing).
 Individual services only set `spring.application.name` and the config server URL in their own `application.properties`.
 
 ---
@@ -398,7 +398,7 @@ ai-fitness-tracker/
 ├── eureka/                          # Eureka Service Discovery Server
 ├── configServer/                    # Spring Cloud Config Server
 │   └── src/main/resources/
-│       └── config/
+│       └── config-repo/
 │           ├── ai-service.properties
 │           ├── activity-service.properties
 │           └── user-service.properties
