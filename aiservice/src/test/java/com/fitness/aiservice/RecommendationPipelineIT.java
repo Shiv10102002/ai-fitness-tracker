@@ -1,6 +1,5 @@
 package com.fitness.aiservice;
 
-import com.fitness.aiservice.model.Recommendation;
 import com.fitness.aiservice.repository.RecommendationRepository;
 import com.fitness.aiservice.service.GeminiService;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -68,11 +67,14 @@ class RecommendationPipelineIT {
                 """;
         send(event);
 
-        await().atMost(Duration.ofSeconds(30)).untilAsserted(() -> {
-            Recommendation rec = recommendationRepository.findByActivityIdAndUserId("act-42", "kc-1").orElseThrow();
-            assertThat(rec.getRecommendation()).isEqualTo("Overall:Nice ride");
-            assertThat(rec.getActivityType()).isEqualTo("CYCLING");
-        });
+        // Must fail with an AssertionError while the record is missing: untilAsserted only
+        // retries on AssertionError, so e.g. Optional.orElseThrow() would abort the wait.
+        await().atMost(Duration.ofSeconds(30)).untilAsserted(() ->
+                assertThat(recommendationRepository.findByActivityIdAndUserId("act-42", "kc-1"))
+                        .hasValueSatisfying(rec -> {
+                            assertThat(rec.getRecommendation()).isEqualTo("Overall:Nice ride");
+                            assertThat(rec.getActivityType()).isEqualTo("CYCLING");
+                        }));
     }
 
     @Test
