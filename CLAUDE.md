@@ -22,7 +22,7 @@ Java 21, Spring Boot 4, Spring Cloud 2025.1, Jackson 3 (`tools.jackson.*`).
 ## Commands
 
 ```bash
-docker compose up -d                 # Postgres, MongoDB, Kafka, Keycloak
+docker compose up -d                 # Postgres, MongoDB, Kafka, Keycloak, Jaeger
 cd <service> && ./mvnw test          # fast tests, no Docker
 cd <service> && ./mvnw verify        # + Testcontainers *IT tests (Docker required)
 cd fitness-frontend && npm run lint && npm run build
@@ -49,6 +49,7 @@ cd fitness-frontend && npm run lint && npm run build
    - Stub HTTP dependencies with `WebClient.builder().exchangeFunction(...)`, not live calls.
 6. **Config & secrets.** Service config lives in `configServer/src/main/resources/config/`.
    Secrets are `${ENV_VAR}` placeholders only (see `.env.example`). Never commit real keys.
-7. **Logging.** Use SLF4J with parameterised messages and include domain ids
-   (activityId, userId). Don't log tokens or full LLM payloads at INFO.
+7. **Observability.** Use SLF4J with parameterised messages and include domain ids
+   (activityId, userId). Trace ids are added automatically (spec 003). Don't log tokens or
+   full LLM payloads at INFO.
 8. **Scope.** Keep changes minimal and focused on the spec. Don't reformat unrelated code.

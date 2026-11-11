@@ -80,6 +80,8 @@ class ActivityTrackingIT {
 
             assertThat(record.key()).isEqualTo("kc-1");
             assertThat(record.value()).contains(saved.getId()).contains("CYCLING");
+            // specs/003, T3: trace context travels with the event to ai-service.
+            assertThat(record.headers().lastHeader("traceparent")).isNotNull();
         }
     }
 }

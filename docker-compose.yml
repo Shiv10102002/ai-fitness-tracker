@@ -1,4 +1,4 @@
-# Local infrastructure for the AI Fitness Tracker.
+# Local infrastructure for the AI Fitness Tracker (Postgres, MongoDB, Kafka, Keycloak, Jaeger).
 #   docker compose up -d
 # Then start the Spring Boot services and the frontend (see README).
 name: ai-fitness-tracker
@@ -49,6 +49,15 @@ services:
     volumes:
       # Creates realm `fitness-app`, PKCE client `oauth2-pkce-client` and user demo / demo123.
       - ./infra/keycloak/fitness-app-realm.json:/opt/keycloak/data/import/fitness-app-realm.json:ro
+
+  jaeger:
+    # Trace UI: http://localhost:16686  — services export spans via OTLP/HTTP on 4318 (specs/003).
+    image: jaegertracing/all-in-one:1.62.0
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    ports:
+      - "16686:16686"
+      - "4318:4318"
 
 volumes:
   postgres-data:

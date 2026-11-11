@@ -41,6 +41,7 @@ Project conventions for AI assistants are in [`/CLAUDE.md`](../CLAUDE.md).
 |---|---|---|
 | 001 | [Caller identity is derived only from the verified JWT](001-identity-from-jwt.md) | Implemented |
 | 002 | [Consistent error responses and resilient Kafka messaging](002-error-handling-and-resilient-messaging.md) | Implemented |
+| 003 | [Distributed tracing across HTTP and Kafka](003-distributed-tracing.md) | Implemented |
 
 Architecture decisions that span many specs are in [`docs/adr`](../docs/adr).
 

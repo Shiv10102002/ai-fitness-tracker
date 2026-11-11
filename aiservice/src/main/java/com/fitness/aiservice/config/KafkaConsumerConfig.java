@@ -51,7 +51,9 @@ public class KafkaConsumerConfig {
 
         DefaultKafkaProducerFactory<Object, Object> producerFactory = new DefaultKafkaProducerFactory<>(config);
         producerFactory.setValueSerializer(new DelegatingByTypeSerializer(byType, true));
-        return new KafkaTemplate<>(producerFactory);
+        KafkaTemplate<Object, Object> template = new KafkaTemplate<>(producerFactory);
+        template.setObservationEnabled(true);
+        return template;
     }
 
     @Bean

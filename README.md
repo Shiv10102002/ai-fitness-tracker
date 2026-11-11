@@ -17,6 +17,7 @@ A full-stack fitness tracking application built with a **microservices architect
 - [Getting Started](#getting-started)
 - [Environment Configuration](#environment-configuration)
 - [Testing](#testing)
+- [Observability](#observability)
 - [Engineering Practices](#engineering-practices)
 - [Project Structure](#project-structure)
 
@@ -59,6 +60,7 @@ Supporting Services:
   Config Server    → localhost:8888  (Centralized Config)
   Keycloak         → localhost:8181  (Identity Provider)
   Apache Kafka     → localhost:9092  (KRaft, no ZooKeeper)
+  Jaeger           → localhost:16686 (Distributed tracing UI)
 ```
 
 ---
@@ -77,6 +79,7 @@ Supporting Services:
 | **Databases** | PostgreSQL (users), MongoDB (activities & recommendations) |
 | **Frontend** | React 19, Vite, Material UI, Redux Toolkit |
 | **HTTP Client** | Spring WebClient (backend), Axios (frontend) |
+| **Observability** | Micrometer Tracing + OpenTelemetry (OTLP) → Jaeger |
 | **Testing** | JUnit 5, Mockito, MockMvc, Testcontainers (PostgreSQL, MongoDB, Kafka) |
 | **CI** | GitHub Actions (per-service `mvn verify`, frontend lint + build) |
 
@@ -111,7 +114,7 @@ If the AI call fails for any reason, a sensible **fallback recommendation** is s
 ### 🛡️ Reliability
 - **Idempotent consumer**: a redelivered Kafka event never creates a duplicate recommendation (unique index + pre-check)
 - **Dead-letter topic**: malformed or repeatedly failing events are retried, then moved to `activity-events.DLT` so the partition keeps flowing
-- **Consistent errors**: all services return RFC 9457 `application/problem+json` with the correct status (400/404/503/500)
+- **Consistent errors**: all services return RFC 9457 `application/problem+json` with the correct status (400/404/503/500) and a `traceId`
 
 ### 📊 Activity History & Detail View
 - View a full list of all past activities
@@ -234,7 +237,7 @@ cd ai-fitness-tracker
 docker compose up -d
 ```
 
-This starts PostgreSQL, MongoDB, Kafka (KRaft) and **Keycloak with the
+This starts PostgreSQL, MongoDB, Kafka (KRaft), Jaeger and **Keycloak with the
 `fitness-app` realm pre-imported** (PKCE client `oauth2-pkce-client` and a demo user
 **`demo` / `demo123`**). See [`docker-compose.yml`](docker-compose.yml) and
 [`infra/keycloak/fitness-app-realm.json`](infra/keycloak/fitness-app-realm.json).
@@ -253,6 +256,8 @@ set -a && source .env && set +a
 |---|---|---|
 | `GEMINI_API_KEY` | ai-service | — (get one from [Google AI Studio](https://aistudio.google.com/apikey)) |
 | `POSTGRES_PASSWORD` | user-service, docker-compose | `postgres` |
+| `OTLP_TRACING_ENDPOINT` | all services | `http://localhost:4318/v1/traces` |
+| `TRACING_SAMPLING_PROBABILITY` | all services | `1.0` |
 
 ### 4. Start Backend Services (in order)
 
@@ -291,6 +296,7 @@ Open `http://localhost:5173` in your browser.
 4. **Log an activity** using the form (type, duration, calories)
 5. The activity is saved and a Kafka event triggers AI analysis in the background
 6. Click any activity in the list to view its **AI recommendation**
+7. Open **Jaeger** at `http://localhost:16686` to see the whole request as one trace
 
 ---
 
@@ -308,6 +314,7 @@ configServer/src/main/resources/config/<service-name>.properties
 | `activity-service.properties` | Activity Service | MongoDB URI, Kafka producer config |
 | `user-service.properties` | User Service | PostgreSQL URL, username, password |
 
+`config/application.properties` holds settings shared by all services (tracing).
 Individual services only set `spring.application.name` and the config server URL in their own `application.properties`.
 
 ---
@@ -319,7 +326,7 @@ Every service has two layers of tests:
 | Layer | Naming | Runs with | Needs Docker | What it covers |
 |---|---|---|---|---|
 | Unit & web-slice | `*Test` | `./mvnw test` | No | Business logic (Mockito), controllers & error mapping (`@WebMvcTest`), gateway security & identity filter, HTTP clients (stubbed `ExchangeFunction`) |
-| Integration | `*IT` | `./mvnw verify` | Yes | Real PostgreSQL / MongoDB / Kafka via **Testcontainers**: idempotent registration, activity → Kafka event, Kafka → recommendation pipeline, duplicate delivery, dead-letter routing |
+| Integration | `*IT` | `./mvnw verify` | Yes | Real PostgreSQL / MongoDB / Kafka via **Testcontainers**: idempotent registration, activity → Kafka event (incl. `traceparent`), Kafka → recommendation pipeline, duplicate delivery, dead-letter routing |
 
 ```bash
 cd activityservice
@@ -338,6 +345,24 @@ service in parallel, plus frontend lint and build, on every push and pull reques
 
 ---
 
+## Observability
+
+All services export traces via OpenTelemetry (OTLP) to **Jaeger** (`http://localhost:16686`).
+A single `POST /api/activities` shows up as **one trace** across:
+
+```
+gateway ─→ user-service (user sync)
+   └─→ activity-service ─→ user-service (validate)
+           └─ Kafka (traceparent header) ─→ ai-service ─→ Gemini API
+```
+
+- Every log line carries `traceId`/`spanId`: `grep <traceId>` across service logs gives the full story.
+- Error responses include `traceId`, so a user-reported error leads straight to its trace.
+
+Design: [`specs/003-distributed-tracing.md`](specs/003-distributed-tracing.md).
+
+---
+
 ## Engineering Practices
 
 This repo is developed with **Spec-Driven Development** in an **AI-assisted development lifecycle**:
@@ -352,7 +377,8 @@ This repo is developed with **Spec-Driven Development** in an **AI-assisted deve
 
 Specs so far:
 [001 identity from verified JWT](specs/001-identity-from-jwt.md) ·
-[002 error handling & resilient messaging](specs/002-error-handling-and-resilient-messaging.md)
+[002 error handling & resilient messaging](specs/002-error-handling-and-resilient-messaging.md) ·
+[003 distributed tracing](specs/003-distributed-tracing.md)
 
 ---
 
@@ -365,7 +391,7 @@ ai-fitness-tracker/
 ├── docs/adr/                        # Architecture Decision Records
 ├── infra/keycloak/                  # Realm auto-imported by docker compose
 ├── .github/workflows/ci.yml         # CI: mvn verify per service + frontend build
-├── docker-compose.yml               # Postgres, MongoDB, Kafka, Keycloak
+├── docker-compose.yml               # Postgres, MongoDB, Kafka, Keycloak, Jaeger
 ├── CLAUDE.md                        # Conventions for AI coding assistants
 ├── CONTRIBUTING.md                  # Branching, commits, backports
 │
