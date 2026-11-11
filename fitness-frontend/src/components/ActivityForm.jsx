@@ -1,6 +1,6 @@
 
 import { Box, Button, FormControl, InputLabel, MenuItem, Select, TextField } from '@mui/material'
-import React, { act, useState } from 'react'
+import { useState } from 'react'
 import { addActivity } from '../services/api';
 
 const ActivityForm = ({ onActivityAdded }) => {
