@@ -3,66 +3,56 @@ package com.fitness.userservice.service;
 import com.fitness.userservice.dto.RegisterRequest;
 import com.fitness.userservice.dto.UserResponse;
 import com.fitness.userservice.model.User;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
-@AllArgsConstructor
+@RequiredArgsConstructor
 @Slf4j
 public class UserService {
     private final UserRepository repository;
 
+    /**
+     * Idempotent registration keyed on the Keycloak subject id.
+     * <ul>
+     *   <li>Known keyCloakId: returns the existing user.</li>
+     *   <li>Known email without a keyCloakId (legacy row): links it to the keyCloakId.</li>
+     *   <li>Otherwise: creates a new user.</li>
+     * </ul>
+     */
+    @Transactional
     public UserResponse register(RegisterRequest req) {
-        if(repository.existsByEmail(req.getEmail())) {
-            User existingUser = repository.findByEmail(req.getEmail());
-            UserResponse response = new UserResponse();
-            response.setId(existingUser.getId());
-            response.setPassword(existingUser.getPassword());
-            response.setEmail(existingUser.getEmail());
-            response.setFirstName(existingUser.getFirstName());
-            response.setLastName(existingUser.getLastName());
-            response.setCreatedAt(existingUser.getCreatedAt());
-            response.setUpdatedAt(existingUser.getUpdatedAt());
-            return response;
-        }
+        return repository.findByKeyCloakId(req.getKeyCloakId())
+                .or(() -> repository.findByEmail(req.getEmail())
+                        .filter(existing -> existing.getKeyCloakId() == null)
+                        .map(existing -> {
+                            log.info("Linking existing user {} to keyCloakId {}", existing.getId(), req.getKeyCloakId());
+                            existing.setKeyCloakId(req.getKeyCloakId());
+                            return repository.save(existing);
+                        }))
+                .map(UserResponse::from)
+                .orElseGet(() -> UserResponse.from(repository.save(newUser(req))));
+    }
 
+    public UserResponse getByKeyCloakId(String keyCloakId) {
+        return repository.findByKeyCloakId(keyCloakId)
+                .map(UserResponse::from)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+    }
+
+    public boolean existsByKeyCloakId(String keyCloakId) {
+        log.debug("Checking whether user with keyCloakId {} exists", keyCloakId);
+        return repository.existsByKeyCloakId(keyCloakId);
+    }
+
+    private static User newUser(RegisterRequest req) {
         User user = new User();
+        user.setKeyCloakId(req.getKeyCloakId());
         user.setEmail(req.getEmail());
         user.setFirstName(req.getFirstName());
         user.setLastName(req.getLastName());
-        user.setPassword(req.getPassword());
-        user.setKeyCloakId(req.getKeyCloakId());
-
-        User saveduser = repository.save(user);
-        UserResponse response = new UserResponse();
-        response.setId(saveduser.getId());
-        response.setPassword(saveduser.getPassword());
-        response.setEmail(saveduser.getEmail());
-        response.setFirstName(saveduser.getFirstName());
-        response.setLastName(saveduser.getLastName());
-        response.setCreatedAt(saveduser.getCreatedAt());
-        response.setUpdatedAt(saveduser.getUpdatedAt());
-        response.setKeyCloakId(saveduser.getKeyCloakId());
-
-        return response;
-    }
-
-    public UserResponse getUserProfileById(String userId) {
-        User user = repository.findById(userId).orElseThrow(()-> new RuntimeException("User not found"));
-        UserResponse response = new UserResponse();
-        response.setId(user.getId());
-        response.setPassword(user.getPassword());
-        response.setEmail(user.getEmail());
-        response.setFirstName(user.getFirstName());
-        response.setLastName(user.getLastName());
-        response.setCreatedAt(user.getCreatedAt());
-        response.setUpdatedAt(user.getUpdatedAt());
-        return response;
-    }
-
-    public Boolean existByKeyCloakId(String keyCloakId) {
-        log.info("checking user with keyCloakId : {} exist in db or not",keyCloakId);
-        return repository.existsByKeyCloakId(keyCloakId);
+        return user;
     }
 }

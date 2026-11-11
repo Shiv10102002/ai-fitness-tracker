@@ -125,26 +125,19 @@ If the AI call fails for any reason, a sensible **fallback recommendation** is s
 
 ## API Reference
 
-All requests go through the **Gateway** at `http://localhost:8080`. Every endpoint (except `/api/users/register`) requires a valid Keycloak JWT in the `Authorization: Bearer <token>` header.
+All requests go through the **Gateway** at `http://localhost:8080`. Every endpoint requires a valid Keycloak JWT in the `Authorization: Bearer <token>` header.
+
+> **Identity:** the gateway sets `X-User-ID` from the `sub` claim of the *verified* JWT and discards any value sent by the client, so every endpoint only ever returns the caller's own data. See [`specs/001-identity-from-jwt.md`](specs/001-identity-from-jwt.md).
 
 ### User Service — `/api/users`
 
 | Method | Endpoint | Auth | Description |
 |---|---|---|---|
-| `POST` | `/api/users/register` | ❌ Public | Register a new user |
-| `GET` | `/api/users/{userId}` | ✅ Required | Get user profile |
-| `GET` | `/api/users/{userId}/validate` | ✅ Required | Check if user exists by Keycloak ID |
+| `GET` | `/api/users/me` | ✅ Required | Get the caller's profile |
+| `POST` | `/api/users/register` | 🔒 Internal only | Called by the gateway on first login (blocked for clients) |
+| `GET` | `/api/users/{keyCloakId}/validate` | 🔒 Internal only | Used by gateway / activity-service (blocked for clients) |
 
-**Register request body:**
-```json
-{
-  "email": "user@example.com",
-  "password": "yourpassword",
-  "firstName": "John",
-  "lastName": "Doe",
-  "keyCloakId": "keycloak-uuid"
-}
-```
+No passwords are stored by the application; Keycloak is the only credential store.
 
 ---
 
@@ -177,8 +170,8 @@ All requests go through the **Gateway** at `http://localhost:8080`. Every endpoi
 
 | Method | Endpoint | Auth | Description |
 |---|---|---|---|
-| `GET` | `/api/recommendation/user/{userId}` | ✅ Required | Get all recommendations for a user |
-| `GET` | `/api/recommendation/activity/{activityId}` | ✅ Required | Get recommendation for a specific activity |
+| `GET` | `/api/recommendation/user` | ✅ Required | Get all of the caller's recommendations |
+| `GET` | `/api/recommendation/activity/{activityId}` | ✅ Required | Get the caller's recommendation for an activity (404 if it belongs to someone else) |
 
 **Recommendation response:**
 ```json

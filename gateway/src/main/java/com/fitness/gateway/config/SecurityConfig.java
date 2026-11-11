@@ -22,7 +22,8 @@ public class SecurityConfig {
     public SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http){
        return  http.csrf(ServerHttpSecurity.CsrfSpec::disable)
                .authorizeExchange(exchange -> exchange
-                       .pathMatchers("/api/users/register").permitAll()
+                       // Internal endpoints: called service-to-service by the gateway, never by clients.
+                       .pathMatchers("/api/users/register", "/api/users/*/validate").denyAll()
                        .anyExchange().authenticated())
                .oauth2ResourceServer(oauth2->oauth2.jwt(Customizer.withDefaults()))
                .build();
@@ -33,7 +34,7 @@ public class SecurityConfig {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOrigins(List.of("http://localhost:5173"));
         config.setAllowedMethods(Arrays.asList("GET","POST","PUT","DELETE","OPTIONS"));
-        config.setAllowedHeaders(Arrays.asList("Authorization","Content-Type","X-User-ID"));
+        config.setAllowedHeaders(Arrays.asList("Authorization","Content-Type"));
         config.setAllowCredentials(true);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/api/**",config);

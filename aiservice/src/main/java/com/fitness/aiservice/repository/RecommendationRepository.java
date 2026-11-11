@@ -8,9 +8,9 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface RecommendationRepository  extends MongoRepository<Recommendation,String> {
+public interface RecommendationRepository extends MongoRepository<Recommendation, String> {
 
     List<Recommendation> findByUserId(String userId);
 
-    Optional<Recommendation> findByActivityId(String activityId);
+    Optional<Recommendation> findByActivityIdAndUserId(String activityId, String userId);
 }
