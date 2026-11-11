@@ -7,6 +7,10 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 
+/**
+ * Local profile of a user. Credentials live in Keycloak only; this service never
+ * stores passwords (see specs/001-identity-from-jwt.md).
+ */
 @Entity
 @Table(name = "users")
 @Data
@@ -15,13 +19,11 @@ public class User {
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
 
+    @Column(unique = true)
     private String keyCloakId;
 
     @Column(unique = true)
     private String email;
-
-    @Column(nullable = false)
-    private String password;
 
     private String firstName;
     private String lastName;
