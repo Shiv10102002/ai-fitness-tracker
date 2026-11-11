@@ -23,10 +23,6 @@ public class RecommendationController {
     @GetMapping("/activity/{activityId}")
     public ResponseEntity<Recommendation> getActivityRecommendation(@PathVariable String activityId,
                                                                     @RequestHeader("X-User-ID") String userId) {
-        try {
-            return ResponseEntity.ok(recommendationService.getActivityRecommendation(activityId, userId));
-        } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
-        }
+        return ResponseEntity.ok(recommendationService.getActivityRecommendation(activityId, userId));
     }
 }

@@ -2,6 +2,7 @@ package com.fitness.userservice.service;
 
 import com.fitness.userservice.dto.RegisterRequest;
 import com.fitness.userservice.dto.UserResponse;
+import com.fitness.userservice.exception.ResourceNotFoundException;
 import com.fitness.userservice.model.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -39,7 +40,7 @@ public class UserService {
     public UserResponse getByKeyCloakId(String keyCloakId) {
         return repository.findByKeyCloakId(keyCloakId)
                 .map(UserResponse::from)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
     }
 
     public boolean existsByKeyCloakId(String keyCloakId) {

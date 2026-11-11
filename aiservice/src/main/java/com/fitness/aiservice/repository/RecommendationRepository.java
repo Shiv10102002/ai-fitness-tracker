@@ -12,5 +12,7 @@ public interface RecommendationRepository extends MongoRepository<Recommendation
 
     List<Recommendation> findByUserId(String userId);
 
+    boolean existsByActivityId(String activityId);
+
     Optional<Recommendation> findByActivityIdAndUserId(String activityId, String userId);
 }
