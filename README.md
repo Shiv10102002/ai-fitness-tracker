@@ -17,6 +17,7 @@ A full-stack fitness tracking application built with a **microservices architect
 - [Getting Started](#getting-started)
 - [Environment Configuration](#environment-configuration)
 - [Testing](#testing)
+- [Engineering Practices](#engineering-practices)
 - [Project Structure](#project-structure)
 
 ---
@@ -337,14 +338,36 @@ service in parallel, plus frontend lint and build, on every push and pull reques
 
 ---
 
+## Engineering Practices
+
+This repo is developed with **Spec-Driven Development** in an **AI-assisted development lifecycle**:
+
+| Artifact | Purpose |
+|---|---|
+| [`specs/`](specs/README.md) | One spec per change: problem → numbered requirements → acceptance criteria, written **before** code. Tests are derived from the acceptance criteria. |
+| [`docs/adr/`](docs/adr/README.md) | Architecture Decision Records (why microservices, why Kafka, why polyglot persistence, why Keycloak) |
+| [`CLAUDE.md`](CLAUDE.md) | Conventions for AI coding assistants: identity rules, error handling, test layers, secrets |
+| [`CONTRIBUTING.md`](CONTRIBUTING.md) | Branch naming, Conventional Commits, PR checklist, release branches & `cherry-pick -x` backports |
+| [PR template](.github/pull_request_template.md) | Links the spec, test evidence, backport decision |
+
+Specs so far:
+[001 identity from verified JWT](specs/001-identity-from-jwt.md) ·
+[002 error handling & resilient messaging](specs/002-error-handling-and-resilient-messaging.md)
+
+---
+
 ## Project Structure
 
 ```
 ai-fitness-tracker/
 │
+├── specs/                           # Spec-driven development: one spec per change
+├── docs/adr/                        # Architecture Decision Records
 ├── infra/keycloak/                  # Realm auto-imported by docker compose
 ├── .github/workflows/ci.yml         # CI: mvn verify per service + frontend build
 ├── docker-compose.yml               # Postgres, MongoDB, Kafka, Keycloak
+├── CLAUDE.md                        # Conventions for AI coding assistants
+├── CONTRIBUTING.md                  # Branching, commits, backports
 │
 ├── eureka/                          # Eureka Service Discovery Server
 ├── configServer/                    # Spring Cloud Config Server
