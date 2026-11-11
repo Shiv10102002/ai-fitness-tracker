@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -19,6 +20,10 @@ public class GeminiService {
 
     @Value("${gemini.api.key}")
     private String geminiApiKey;
+
+    /** Without a bound, a hanging call blocks the Kafka consumer past max.poll.interval.ms. */
+    @Value("${gemini.api.timeout:60s}")
+    private Duration timeout;
 
     private final AtomicInteger totalCalls = new AtomicInteger(0);
     private final AtomicInteger successCalls = new AtomicInteger(0);
@@ -49,6 +54,7 @@ public class GeminiService {
                     .bodyValue(requestBody)
                     .retrieve()
                     .bodyToMono(String.class)
+                    .timeout(timeout)
                     .block();
 
             int success = successCalls.incrementAndGet();
