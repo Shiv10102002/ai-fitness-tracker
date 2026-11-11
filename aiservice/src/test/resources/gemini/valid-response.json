@@ -1,0 +1,14 @@
+{
+  "candidates": [
+    {
+      "content": {
+        "parts": [
+          {
+            "text": "```json\n{\n  \"analysis\": {\n    \"overall\": \"Solid steady-state run.\",\n    \"pace\": \"Consistent pace.\",\n    \"heartRate\": \"Zone 2 most of the time.\",\n    \"caloriesBurned\": \"In line with duration.\"\n  },\n  \"improvements\": [\n    {\"area\": \"Cadence\", \"recommendation\": \"Aim for 170 spm.\"}\n  ],\n  \"suggestions\": [\n    {\"workout\": \"Intervals\", \"description\": \"6 x 400m at 5k pace.\"}\n  ],\n  \"safety\": [\"Warm up for 10 minutes\", \"Hydrate\"]\n}\n```"
+          }
+        ],
+        "role": "model"
+      }
+    }
+  ]
+}
