@@ -1,6 +1,7 @@
 package com.fitness.userservice.controller;
 
 import com.fitness.userservice.dto.UserResponse;
+import com.fitness.userservice.exception.ResourceNotFoundException;
 import com.fitness.userservice.service.UserService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -72,5 +73,24 @@ class UserControllerTest {
         mockMvc.perform(get("/api/users/kc-1/validate"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").value(true));
+    }
+
+    @Test
+    void me_returns404ProblemDetail_whenUserIsNotSyncedYet() throws Exception {
+        when(userService.getByKeyCloakId("kc-unknown")).thenThrow(new ResourceNotFoundException("User not found"));
+
+        mockMvc.perform(get("/api/users/me").header("X-User-ID", "kc-unknown"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.detail").value("User not found"));
+    }
+
+    @Test
+    void register_returnsFieldErrors() throws Exception {
+        mockMvc.perform(post("/api/users/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"not-an-email\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors.keyCloakId").value("keyCloakId is required"))
+                .andExpect(jsonPath("$.errors.email").value("Invalid email format"));
     }
 }

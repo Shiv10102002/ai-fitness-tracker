@@ -1,5 +1,6 @@
 package com.fitness.aiservice.controller;
 
+import com.fitness.aiservice.exception.ResourceNotFoundException;
 import com.fitness.aiservice.model.Recommendation;
 import com.fitness.aiservice.service.RecommendationService;
 import org.junit.jupiter.api.Test;
@@ -37,10 +38,11 @@ class RecommendationControllerTest {
     @Test
     void activityRecommendation_ofAnotherUser_isNotFound() throws Exception {
         when(recommendationService.getActivityRecommendation("bobs-activity", "alice-sub"))
-                .thenThrow(new RuntimeException("No recommendation found"));
+                .thenThrow(new ResourceNotFoundException("No recommendation found for activity bobs-activity"));
 
         mockMvc.perform(get("/api/recommendation/activity/bobs-activity").header("X-User-ID", "alice-sub"))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.detail").value("No recommendation found for activity bobs-activity"));
     }
 
     @Test

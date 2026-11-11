@@ -2,6 +2,8 @@ package com.example.activityservice.controller;
 
 import com.example.activityservice.dto.ActivityRequest;
 import com.example.activityservice.dto.ActivityResponse;
+import com.example.activityservice.exception.ResourceNotFoundException;
+import com.example.activityservice.exception.ServiceUnavailableException;
 import com.example.activityservice.service.ActivityService;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -15,10 +17,12 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -64,4 +68,60 @@ class ActivityControllerTest {
         mockMvc.perform(get("/api/activities"))
                 .andExpect(status().isBadRequest());
     }
+
+    @Test
+    void invalidActivity_isRejectedWithFieldErrors_andNotProcessed() throws Exception {
+        mockMvc.perform(post("/api/activities")
+                        .header("X-User-ID", "alice-sub")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"duration":-5,"caloriesBurned":-1,"startTime":"2999-01-01T00:00:00"}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.errors.type").value("Activity type is required"))
+                .andExpect(jsonPath("$.errors.duration").value("Duration must be greater than 0 minutes"))
+                .andExpect(jsonPath("$.errors.caloriesBurned").exists())
+                .andExpect(jsonPath("$.errors.startTime").exists());
+
+        verify(activityService, never()).trackActivity(any());
+    }
+
+    @Test
+    void unknownUser_returns404ProblemDetail() throws Exception {
+        when(activityService.trackActivity(any())).thenThrow(new ResourceNotFoundException("User ghost not found"));
+
+        mockMvc.perform(post("/api/activities")
+                        .header("X-User-ID", "ghost")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(VALID_BODY))
+                .andExpect(status().isNotFound())
+                .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.detail").value("User ghost not found"));
+    }
+
+    @Test
+    void userServiceOutage_returns503() throws Exception {
+        when(activityService.trackActivity(any()))
+                .thenThrow(new ServiceUnavailableException("user-service is unavailable", new RuntimeException()));
+
+        mockMvc.perform(post("/api/activities")
+                        .header("X-User-ID", "alice-sub")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(VALID_BODY))
+                .andExpect(status().isServiceUnavailable());
+    }
+
+    @Test
+    void unexpectedError_returns500WithoutLeakingInternals() throws Exception {
+        when(activityService.getUserActivities("alice-sub")).thenThrow(new IllegalStateException("Mongo password=secret"));
+
+        mockMvc.perform(get("/api/activities").header("X-User-ID", "alice-sub"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.detail").value("Unexpected error"));
+    }
+
+    private static final String VALID_BODY = """
+            {"type":"RUNNING","duration":30,"caloriesBurned":300}
+            """;
 }

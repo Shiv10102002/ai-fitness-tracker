@@ -2,6 +2,7 @@ package com.example.activityservice.service;
 
 import com.example.activityservice.dto.ActivityRequest;
 import com.example.activityservice.dto.ActivityResponse;
+import com.example.activityservice.exception.ResourceNotFoundException;
 import com.example.activityservice.model.Activity;
 import com.example.activityservice.model.ActivityType;
 import org.junit.jupiter.api.BeforeEach;
@@ -9,10 +10,15 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.kafka.common.TopicPartition;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.support.SendResult;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -41,11 +47,8 @@ class ActivityServiceTest {
     @Test
     void trackActivity_savesActivityAndPublishesEventKeyedByUser() {
         when(userValidationService.validateUser("kc-1")).thenReturn(true);
-        when(activityRepository.save(any(Activity.class))).thenAnswer(inv -> {
-            Activity a = inv.getArgument(0);
-            a.setId("act-1");
-            return a;
-        });
+        stubSave();
+        when(kafkaTemplate.send(anyString(), anyString(), any(Activity.class))).thenReturn(sent());
 
         ActivityResponse response = activityService.trackActivity(request("kc-1"));
 
@@ -60,9 +63,22 @@ class ActivityServiceTest {
         when(userValidationService.validateUser("ghost")).thenReturn(false);
 
         assertThatThrownBy(() -> activityService.trackActivity(request("ghost")))
+                .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("ghost");
 
         verifyNoInteractions(activityRepository, kafkaTemplate);
+    }
+
+    @Test
+    void trackActivity_stillSucceeds_whenKafkaPublishFails() {
+        when(userValidationService.validateUser("kc-1")).thenReturn(true);
+        stubSave();
+        when(kafkaTemplate.send(anyString(), anyString(), any(Activity.class)))
+                .thenReturn(CompletableFuture.failedFuture(new RuntimeException("broker down")));
+
+        ActivityResponse response = activityService.trackActivity(request("kc-1"));
+
+        assertThat(response.getId()).isEqualTo("act-1");
     }
 
     @Test
@@ -80,6 +96,19 @@ class ActivityServiceTest {
                 });
         verify(activityRepository, never()).findAll();
         verify(activityRepository).findByUserId(anyString());
+    }
+
+    private void stubSave() {
+        when(activityRepository.save(any(Activity.class))).thenAnswer(inv -> {
+            Activity a = inv.getArgument(0);
+            a.setId("act-1");
+            return a;
+        });
+    }
+
+    private static CompletableFuture<SendResult<String, Activity>> sent() {
+        RecordMetadata metadata = new RecordMetadata(new TopicPartition("activity-events", 0), 0, 0, 0L, 0, 0);
+        return CompletableFuture.completedFuture(new SendResult<>(new ProducerRecord<>("activity-events", null), metadata));
     }
 
     static ActivityRequest request(String userId) {

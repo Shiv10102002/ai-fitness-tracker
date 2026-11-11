@@ -2,6 +2,7 @@ package com.example.activityservice.service;
 
 import com.example.activityservice.dto.ActivityRequest;
 import com.example.activityservice.dto.ActivityResponse;
+import com.example.activityservice.exception.ResourceNotFoundException;
 import com.example.activityservice.model.Activity;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,9 +25,8 @@ public class ActivityService {
     private String topicName;
 
     public ActivityResponse trackActivity(ActivityRequest req) {
-        boolean isValidUser = userValidationService.validateUser(req.getUserId());
-        if(!isValidUser){
-            throw new RuntimeException("Invalid user : "+ req.getUserId());
+        if (!userValidationService.validateUser(req.getUserId())) {
+            throw new ResourceNotFoundException("User " + req.getUserId() + " not found");
         }
 
         Activity activity = Activity.builder()
@@ -38,15 +38,25 @@ public class ActivityService {
                 .additionalMetrics(req.getAdditionalMetrics())
                 .build();
         Activity savedActivity = activityRepository.save(activity);
-        try{
-            log.info("sending message to cafka for generate activity recommendation");
-            kafkaTemplate.send(topicName, savedActivity.getUserId(), savedActivity);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-
+        publishActivityEvent(savedActivity);
         return mapToResponse(savedActivity);
+    }
+
+    /**
+     * Publishes the event that triggers AI analysis. Sending is asynchronous, so broker
+     * failures are reported in the callback; the activity itself is already saved.
+     * See specs/002 for the transactional-outbox trade-off.
+     */
+    private void publishActivityEvent(Activity activity) {
+        kafkaTemplate.send(topicName, activity.getUserId(), activity)
+                .whenComplete((result, ex) -> {
+                    if (ex != null) {
+                        log.error("Failed to publish activity {} to topic {}", activity.getId(), topicName, ex);
+                    } else {
+                        log.info("Published activity {} to {}-{}@{}", activity.getId(), topicName,
+                                result.getRecordMetadata().partition(), result.getRecordMetadata().offset());
+                    }
+                });
     }
 
     private ActivityResponse mapToResponse(Activity savedActivity) {

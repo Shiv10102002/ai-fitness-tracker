@@ -24,7 +24,7 @@ public class ActivityAIService {
 
             String prompt = createPromptForActivity(activity);
             String aiResponse =  geminiService.getRecommendations(prompt);
-            log.info("Response from ai {} ",aiResponse);
+            log.debug("Gemini response for activity {}: {}", activity.getId(), aiResponse);
             return  processAiResponse(activity,aiResponse);
     }
 
@@ -69,9 +69,10 @@ public class ActivityAIService {
                     .createdAt(LocalDateTime.now())
                     .build();
 
-        }catch (Exception e){
-              e.printStackTrace();
-              return createDefaultRecommendation(activity);
+        } catch (Exception e) {
+            log.warn("Could not parse Gemini response for activity {}, using default recommendation",
+                    activity.getId(), e);
+            return createDefaultRecommendation(activity);
         }
     }
 

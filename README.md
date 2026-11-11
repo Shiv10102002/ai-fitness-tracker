@@ -103,6 +103,11 @@ After every logged activity, an event is published to Kafka. The AI Service cons
 
 If the AI call fails for any reason, a sensible **fallback recommendation** is saved automatically so no activity is ever left without a response.
 
+### 🛡️ Reliability
+- **Idempotent consumer**: a redelivered Kafka event never creates a duplicate recommendation (unique index + pre-check)
+- **Dead-letter topic**: malformed or repeatedly failing events are retried, then moved to `activity-events.DLT` so the partition keeps flowing
+- **Consistent errors**: all services return RFC 9457 `application/problem+json` with the correct status (400/404/503/500)
+
 ### 📊 Activity History & Detail View
 - View a full list of all past activities
 - Click any activity to see its details alongside the full AI recommendation
