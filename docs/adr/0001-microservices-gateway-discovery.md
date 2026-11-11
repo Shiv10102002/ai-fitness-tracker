@@ -18,5 +18,5 @@ and AI analysis (slow, depends on an external LLM API with rate limits).
 - \+ AI latency or Gemini outages cannot slow down activity logging.
 - \+ Each service can be deployed and scaled independently.
 - − More moving parts locally (mitigated by `docker-compose.yml`).
-- − Cross-service debugging needs correlation (planned: distributed tracing).
+- − Cross-service debugging needs correlation (addressed by spec 003, tracing).
 - − Downstream services trust `X-User-ID`, so they must not be exposed publicly.
