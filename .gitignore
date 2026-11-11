@@ -21,3 +21,12 @@ secrets.properties
 *.jks
 *.keystore
 *.truststore
+# macOS
+.DS_Store
+
+# Frontend
+node_modules/
+dist/
+
+# Build output
+target/

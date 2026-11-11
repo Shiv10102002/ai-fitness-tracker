@@ -10,7 +10,6 @@ import { Box } from "@mui/material";
 import ActivityForm from "./components/ActivityForm";
 import ActivityList from "./components/ActivityList";
 import ActivityDetail from "./components/ActivityDetail";
-import { useState } from "react";
 
 
 const ActivitiesPage = () => {
@@ -26,16 +25,12 @@ const ActivitiesPage = () => {
 
 function App() {
 
- const { token, tokenData, logIn, logOut, isAuthenticated } 
-      = useContext(AuthContext);
+  const { token, tokenData, logIn, logOut } = useContext(AuthContext);
   const dispatch = useDispatch();
-
-   const [authReady, setAuthReady] = useState(false);
 
   useEffect(() => {
     if (token) {
-      dispatch(setCredentials({token, user: tokenData}));
-      setAuthReady(true);
+      dispatch(setCredentials({ token, user: tokenData }));
     }
   }, [token, tokenData, dispatch]);
 

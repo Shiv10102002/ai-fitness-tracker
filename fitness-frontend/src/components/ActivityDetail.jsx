@@ -1,76 +1,65 @@
 import { Box, Card, CardContent, Divider, Typography } from '@mui/material'
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams } from 'react-router';
 import { getActivityDetail } from '../services/api';
 
+/** Shows the AI recommendation for one activity. The API returns the Recommendation document. */
 const ActivityDetail = () => {
-
   const { id } = useParams();
-  const [activity, setActivity] = useState(null);
   const [recommendation, setRecommendation] = useState(null);
+  const [status, setStatus] = useState('loading');
 
   useEffect(() => {
-    const fetchActivityDetail = async () => {
-      try {
-        const response = await getActivityDetail(id);
-        setActivity(response.data);
-        setRecommendation(response.data.recommendation);
-      } catch (error) {
-        console.error(error);
-      }
-    }
-
-    fetchActivityDetail();
+    let cancelled = false;
+    getActivityDetail(id)
+      .then((response) => {
+        if (cancelled) return;
+        setRecommendation(response.data);
+        setStatus('ready');
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        // 404 means the AI service has not processed this activity yet (or it is not yours).
+        setStatus(error.response?.status === 404 ? 'pending' : 'error');
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [id]);
 
-  if (!activity) {
-    return <Typography>Loading...</Typography>
-  }
+  if (status === 'loading') return <Typography>Loading...</Typography>;
+  if (status === 'pending') return <Typography>Your AI recommendation is still being generated. Check back in a moment.</Typography>;
+  if (status === 'error') return <Typography color="error">Could not load this recommendation.</Typography>;
 
   return (
     <Box sx={{ maxWidth: 800, mx: 'auto', p: 2 }}>
-            <Card sx={{ mb: 2 }}>
-                <CardContent>
-                    <Typography variant="h5" gutterBottom>Activity Details</Typography>
-                    <Typography>Type: {activity.type}</Typography>
-                    <Typography>Duration: {activity.duration} minutes</Typography>
-                    <Typography>Calories Burned: {activity.caloriesBurned}</Typography>
-                    <Typography>Date: {new Date(activity.createdAt).toLocaleString()}</Typography>
-                </CardContent>
-            </Card>
+      <Card>
+        <CardContent>
+          <Typography variant="h5" gutterBottom>AI Recommendation — {recommendation.activityType}</Typography>
+          <Typography variant="body2" color="text.secondary" gutterBottom>
+            Generated {new Date(recommendation.createdAt).toLocaleString()}
+          </Typography>
 
-            {recommendation && (
-                <Card>
-                    <CardContent>
-                        <Typography variant="h5" gutterBottom>AI Recommendation</Typography>
-                        <Typography variant="h6">Analysis</Typography>
-                        <Typography paragraph>{activity.recommendation}</Typography>
-                        
-                        <Divider sx={{ my: 2 }} />
-                        
-                        <Typography variant="h6">Improvements</Typography>
-                        {activity?.improvements?.map((improvement, index) => (
-                            <Typography key={index} paragraph>• {activity.improvements}</Typography>
-                        ))}
-                        
-                        <Divider sx={{ my: 2 }} />
-                        
-                        <Typography variant="h6">Suggestions</Typography>
-                        {activity?.suggestions?.map((suggestion, index) => (
-                            <Typography key={index} paragraph>• {suggestion}</Typography>
-                        ))}
-                        
-                        <Divider sx={{ my: 2 }} />
-                        
-                        <Typography variant="h6">Safety Guidelines</Typography>
-                        {activity?.safety?.map((safety, index) => (
-                            <Typography key={index} paragraph>• {safety}</Typography>
-                        ))}
-                    </CardContent>
-                </Card>
-            )}
-        </Box>
+          <Typography variant="h6">Analysis</Typography>
+          <Typography sx={{ whiteSpace: 'pre-line', mb: 2 }}>{recommendation.recommendation}</Typography>
+
+          <Section title="Improvements" items={recommendation.improvements} />
+          <Section title="Suggestions" items={recommendation.suggestions} />
+          <Section title="Safety Guidelines" items={recommendation.safety} />
+        </CardContent>
+      </Card>
+    </Box>
   )
 }
+
+const Section = ({ title, items }) => (
+  <>
+    <Divider sx={{ my: 2 }} />
+    <Typography variant="h6">{title}</Typography>
+    {items?.map((item, index) => (
+      <Typography key={index} sx={{ mb: 1 }}>• {item}</Typography>
+    ))}
+  </>
+);
 
 export default ActivityDetail
