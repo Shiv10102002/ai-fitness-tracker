@@ -75,7 +75,7 @@ Supporting Services:
 | **Config Management** | Spring Cloud Config Server |
 | **Authentication** | Keycloak (OAuth2 / OIDC / PKCE) |
 | **Messaging** | Apache Kafka |
-| **AI Integration** | Google Gemini API (`gemini-2.5-flash`) |
+| **AI Integration** | Google Gemini API (`gemini-3.8-flash` by default, configurable via `GEMINI_MODEL`) |
 | **Databases** | PostgreSQL (users), MongoDB (activities & recommendations) |
 | **Frontend** | React 19, Vite, Material UI, Redux Toolkit |
 | **HTTP Client** | Spring WebClient (backend), Axios (frontend) |
@@ -256,6 +256,8 @@ set -a && source .env && set +a
 |---|---|---|
 | `GEMINI_API_KEY` | ai-service | — (get one from [Google AI Studio](https://aistudio.google.com/apikey)) |
 | `POSTGRES_PASSWORD` | user-service, docker-compose | `postgres` |
+| `GEMINI_MODEL` | ai-service | `gemini-3.8-flash` |
+| `GEMINI_TIMEOUT` | ai-service | `60s` |
 | `OTLP_TRACING_ENDPOINT` | all services | `http://localhost:4318/v1/traces` |
 | `TRACING_SAMPLING_PROBABILITY` | all services | `1.0` |
 
